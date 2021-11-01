@@ -15,13 +15,13 @@
 import os
 import unittest
 from typing import List, Tuple
-from time import time
+import time
 
 from forte.data.data_pack import DataPack
 from forte.data.readers.ontonotes_reader import OntonotesReader
 from forte.processors.base.pack_processor import PackProcessor
 from forte.pipeline import Pipeline
-from ft.onto.base_ontology import Sentence, Token, EntityMention, Document
+from ft.onto.base_ontology import Sentence, Document
 
 
 class DummyPackProcessor(PackProcessor):
@@ -53,27 +53,52 @@ class OntonoteGetterPipelineTest(unittest.TestCase):
         self.data_pack: DataPack = self.nlp.process_one(self.dataset_path)
 
     def test_delete(self):
+        t1 = time.time()
         # get processed pack from dataset
-        for pack in self.nlp.process_dataset(self.dataset_path):
+        iter = self.nlp.process_dataset(self.dataset_path)
+        t2 = time.time()
+        print("process_dataset: ", t2 - t1)
+        for pack in iter:
+            print("Get pack: ", time.time() - t1)
             # get sentence from pack
             sentences = list(pack.get(Sentence))
             num_sent = len(sentences)
             first_sent = sentences[0]
             # delete first sentence
+            t3 = time.time()
             pack.delete_entry(first_sent)
+            print("Delete pack: ", time.time() - t3)
             self.assertEqual(len(list(pack.get_data(Sentence))), num_sent - 1)
+
+    def test_get_raw(self):
+        t1 = time.time()
+        # get processed pack from dataset
+        iter = self.nlp.process_dataset(self.dataset_path)
+        t2 = time.time()
+        print("process_dataset: ", t2 - t1)
+        for pack in iter:
+            # print("Get pack: ", time.time()-t1)
+            # get sentence from pack
+            sentences = list(pack.get_raw(Sentence))
+            # pack._get_attributes(Sentence)
+            num_sent = len(sentences)
+            self.assertNotEqual(num_sent, 0)
+        print("Get all pack: ", time.time() - t1)
 
     def test_get_request(self):
         # get processed pack from dataset
         get_timer = 0
         for pack in self.nlp.process_dataset(self.dataset_path):
             # get data with required entry
-            requests = {Sentence: ["speaker"], Token: ["pos", "sense"]}
-            start_time = time()
+            requests = {
+                Sentence: ["speaker"],
+                # Token: ["pos", "sense"]
+            }
+            start_time = time.time()
             instances = list(
                 pack.get_data(Sentence, request=requests, skip_k=1)
             )
-            get_timer += time() - start_time
+            get_timer += time.time() - start_time
         print("get data with request: " + str(get_timer))
         self.nlp.finish()
 
@@ -115,4 +140,7 @@ class OntonoteGetterPipelineTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main("get_delete_profiler")
+    # unittest.main("get_delete_profiler")
+    test = OntonoteGetterPipelineTest()
+    test.setUp()
+    test.test_get_entries()
